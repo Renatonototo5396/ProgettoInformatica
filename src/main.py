@@ -43,3 +43,11 @@ def crea_tabella(conn):
                           """)
     conn.commit()
     
+    def pulisci_schermo():
+        os.system("cls" if os.name == "nt" else "clear")
+
+        def stampa_separatore(lunghezza=40):
+            print ("-" * lunghezza)
+
+        def pausa()
+            input("\nPremi INVIO per continuare...")
