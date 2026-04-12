@@ -24,10 +24,11 @@ CREATE TABLE IF NOT EXISTS Spese (
     Data VARCHAR(255) NOT NULL,
     Importo REAL NOT NULL CHECK (Importo > 0),
     Categoria_id INTEGER NOT NULL,
-    Descreizione VARCHAR(255),
-    FOREIGN KEY (Categoria_id) REFERENCES Categoria(ID)
-    ON DELETE RESTRICT  ON UPDATE CASCADE
-);
+    Descrizione VARCHAR(255),
+    FOREIGN KEY (Categoria_id) REFERENCES Categorie(ID)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+    );
 
 ------------------------------------
 -- TABELLA: Budget_mensile
@@ -39,7 +40,7 @@ CREATE TABLE IF NOT EXISTS Budget_mensile (
     Categoria_id INTEGER NOT NULL,
     Importo_budget REAL NOT NULL CHECK (Importo_budget > 0),
     UNIQUE (Mese, Categoria_id),
-    FOREIGN KEY (Categoria_id) REFERENCES Categoria(ID)
+    FOREIGN KEY (Categoria_id) REFERENCES Categorie(ID)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 );
@@ -49,30 +50,30 @@ CREATE TABLE IF NOT EXISTS Budget_mensile (
 ------------------------------------
 -- INSERIMENTO CATEGORIE
 
-INSERT INTO Categoria (Nome) VALUES ("Alimentari");
-INSERT INTO Categoria (Nome) VALUES ("Viaggi");
-INSERT INTO Categoria (Nome) VALUES ("Svago");
-INSERT INTO Categoria (Nome) VALUES ("Shopping");
-INSERT INTO Categoria (Nome) VALUES ("Collezionabili");
-INSERT INTO Categoria (Nome) VALUES ("Varie");
+INSERT INTO Categorie (Nome) VALUES ("Alimentari");
+INSERT INTO Categorie (Nome) VALUES ("Viaggi");
+INSERT INTO Categorie (Nome) VALUES ("Svago");
+INSERT INTO Categorie (Nome) VALUES ("Shopping");
+INSERT INTO Categorie (Nome) VALUES ("Collezionabili");
+INSERT INTO Categorie (Nome) VALUES ("Varie");
 
 -- INSERIMENTO SPESE
 
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2026-02-28", 52, 5, "Pokemon");
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2026-01-12", 12, 1, "Uovo di Pasqua");
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2025-11-01", 100, 2, "Diesel");
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2026-01-22", 120, 4, "Zara");
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2026-03-28", 103, 5, "Pokemon");
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2026-03-22", 10, 6, "Cinema");
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2026-01-11", 200, 2, "Viaggio Madrid");
-INSERT INTO Spese (Data, Importo, Categoria_id, Descreizione)
+INSERT INTO Spese (Data, Importo, Categoria_id, Descrizione)
 VALUES ("2026-03-05", 250, 3, "Cena Stellata");
 
 -- INSERIMENTO BUDGET MENSILE
