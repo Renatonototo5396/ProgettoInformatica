@@ -1,46 +1,51 @@
 # SISTEMA DI GESTIONE DELLE SPESE PERSONALI
 # File: main.py
 
-import sqlite3
+import mysql.connector
 import os
 import re
 
-NOME_DB = "spese_personali.db"
+DB_CONFIG = {
+    "host" : "localhost",
+    "user" : "root",
+    "password" : "",
+    "database" : "spese_personali"
+}
 
 def connetti_db():
-    conn = sqlite3.connect(NOME_DB)
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn = mysql.connector.connect(**DB_CONFIG)
     crea_tabella(conn)
     return conn
 
 def crea_tabella(conn): # CREAZIONE TABELLE SQL
-    cursore = conn.cursor()
-    cursore.executescript("""
-                          
+    cursore = conn.cursor(buffered=True)
+    cursore.execute("""                
       CREATE TABLE IF NOT EXISTS Categorie (
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL UNIQUE 
-    );
-
+        ID INTEGER PRIMARY KEY AUTO_INCREMENT,
+        nome VARCHAR(255) NOT NULL UNIQUE 
+    )
+    """)
+    cursore.execute("""
     CREATE TABLE IF NOT EXISTS Spese (
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        data TEXT NOT NULL,
+        ID INTEGER PRIMARY KEY AUTO_INCREMENT,
+        data VARCHAR(255) NOT NULL,
         importo REAL NOT NULL CHECK (importo > 0),
         categoria_id INTEGER NOT NULL,
-        descrizione TEXT,
+        descrizione VARCHAR(255),
         FOREIGN KEY (categoria_id) REFERENCES categorie(ID)
         ON DELETE RESTRICT ON UPDATE CASCADE
-    );
-                          
+    )
+    """)
+    cursore.execute("""                      
     CREATE TABLE IF NOT EXISTS Budget_mensile (
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Mese TEXT NOT NULL,
+        ID INTEGER PRIMARY KEY AUTO_INCREMENT,
+        Mese VARCHAR(255) NOT NULL,
         Categoria_id INTEGER NOT NULL,
         importo_budget REAL NOT NULL CHECK (importo_budget > 0),
         UNIQUE (Mese, Categoria_id),
         FOREIGN KEY (Categoria_id) REFERENCES Categorie(ID)
         ON DELETE RESTRICT ON UPDATE CASCADE
-        ); 
+        )
                           """)
     conn.commit()
     
@@ -67,15 +72,15 @@ def gestione_categorie(conn):
         print("\nErrore il nome non può essere vuoto.")
         pausa()
         return
-    cursore = conn.cursor()
+    cursore = conn.cursor(buffered=True)
     cursore.execute(
-        "SELECT ID FROM Categorie WHERE LOWER(nome) =LOWER (?)", (nome,)
+        "SELECT ID FROM Categorie WHERE LOWER(nome) =LOWER (%s)", (nome,)
     )
     if cursore.fetchone():
         print(f"\nErrore: la categoria '{nome}' esiste già.")
         pausa()
         return
-    cursore.execute("INSERT INTO Categorie (nome) VALUES (?)" , (nome,))
+    cursore.execute("INSERT INTO Categorie (nome) VALUES (%s)" , (nome,))
     conn.commit()
     print(f"\nCategoria '{nome}' inserita correttamente.")
     pausa()
@@ -99,7 +104,7 @@ def inserisci_spesa(conn):
      print("INSERISCI SPESA")
      stampa_separatore()
 
-    # INPUT INSERIMENTO DATA 
+     # INPUT INSERIMENTO DATA 
      
      data = input("Data (formato YYYY-MM-DD): ").strip()
      if not valida_data(data):
@@ -120,16 +125,16 @@ def inserisci_spesa(conn):
         pausa()         
         return
       
-    # INPUT INSERIMENTO CATEGORIA 
+     # INPUT INSERIMENTO CATEGORIA 
     
      categoria_nome = input ("Categoria: ").strip()
-     if not categoria_nome:
+     if not categoria_nome:  
         print("\nErrore: il campo non può essere vuoto.")
         pausa()
         return
-     cursore = conn.cursor()
+     cursore = conn.cursor(buffered=True)
      cursore.execute(
-          "SELECT ID FROM Categorie WHERE LOWER(nome) = LOWER(?)", (categoria_nome,)
+          "SELECT ID FROM Categorie WHERE LOWER(nome) = LOWER(%s)", (categoria_nome,)
      )
      riga = cursore.fetchone()
      if not riga:
@@ -145,7 +150,7 @@ def inserisci_spesa(conn):
           descrizione=None
     
      cursore.execute(
-          "INSERT INTO Spese (data, importo, categoria_id, descrizione) VALUES (?,?,?,?)",
+          "INSERT INTO Spese (data, importo, categoria_id, descrizione) VALUES (%s,%s,%s,%s)",
           (data, importo, categoria_id, descrizione)
          
     )
@@ -182,9 +187,9 @@ def definisci_budget(conn):
         pausa()
         return
 
-    cursore = conn.cursor()
+    cursore = conn.cursor(buffered=True)
     cursore.execute(
-        "SELECT ID FROM Categorie WHERE LOWER(nome) = LOWER(?)", (categoria_nome,)
+        "SELECT ID FROM Categorie WHERE LOWER(nome) = LOWER(%s)", (categoria_nome,)
     )
     riga = cursore.fetchone()
     if not riga:
@@ -207,10 +212,11 @@ def definisci_budget(conn):
         return
 
     cursore.execute("""
-        INSERT INTO Budget_mensile (mese, Categoria_id, importo_budget)
-        VALUES (?, ?, ?)
-        ON CONFLICT(mese, Categoria_id) DO UPDATE SET importo_budget = excluded.importo_budget
+    INSERT INTO Budget_mensile (mese, Categoria_id, importo_budget)
+    VALUES (%s, %s, %s)
+    ON DUPLICATE KEY UPDATE importo_budget = VALUES(importo_budget)
     """, (mese, categoria_id, importo_budget))
+        
     conn.commit()
     print("\nBudget mensile salvato correttamente.")
     pausa()
@@ -246,7 +252,7 @@ def report_totale_categorie(conn):
     stampa_separatore()          
     print (" REPORT 1 - TOTALE SPESE PER CATEGORIA")
     stampa_separatore()
-    cursore = conn.cursor()
+    cursore = conn.cursor(buffered=True)
     cursore.execute("""
         SELECT c.nome, SUM(s.importo)
         FROM Spese s
@@ -274,21 +280,21 @@ def report_spese_vs_budget(conn):
     print(" REPORT 2 - SPESE MENSILI VS BUDGET")
     stampa_separatore()
 
-    cursore = conn.cursor()
+    cursore = conn.cursor(buffered=True)
     cursore.execute("""
-        SELECT
-            strftime('%Y-%m', s.data) AS mese,
-            c.nome AS categoria,
-            SUM(s.importo) AS speso,
-            b.importo_budget AS budget
-        FROM Spese s
-        JOIN Categorie c ON s.categoria_id = c.ID
-        LEFT JOIN Budget_mensile b
-            ON strftime('%Y-%m', s.data) = b.Mese
-            AND s.categoria_id = b.Categoria_id
-        GROUP BY mese, c.nome
-        ORDER BY mese, c.nome
-    """)
+    SELECT
+        LEFT(s.data, 7) AS mese,
+        c.nome AS categoria,
+        SUM(s.importo) AS speso,
+        b.importo_budget AS budget
+    FROM Spese s
+    JOIN Categorie c ON s.categoria_id = c.ID
+    LEFT JOIN Budget_mensile b
+        ON LEFT(s.data, 7) = b.Mese
+        AND s.categoria_id = b.Categoria_id
+    GROUP BY LEFT(s.data, 7), c.nome, b.importo_budget
+    ORDER BY mese, c.nome
+        """)
     righe = cursore.fetchall()
 
     if not righe:
@@ -321,7 +327,7 @@ def report_elenco_spese(conn):
     print(" REPORT 3 - ELENCO COMPLETO SPESE")
     stampa_separatore()
 
-    cursore = conn.cursor()
+    cursore = conn.cursor(buffered=True)
     cursore.execute("""
         SELECT s.data, c.nome, s.importo, COALESCE(s.descrizione, '-')
         FROM Spese s
@@ -377,4 +383,3 @@ def menu_principale():
 if __name__ == "__main__":
     menu_principale()
     
-
